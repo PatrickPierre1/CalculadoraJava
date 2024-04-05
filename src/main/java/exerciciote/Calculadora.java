@@ -2,24 +2,30 @@ package exerciciote;
 
 import javax.swing.*;
 import java.awt.*;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
 
 import static javax.swing.JOptionPane.showMessageDialog;
 
 public class Calculadora extends JFrame {
+    private static final String CAMPO_1 = "Campo 1";
+    private static final String CAMPO_2 = "Campo 2";
     private JTextField campoValor1;
     private JTextField campoValor2;
     private JButton buttonSomar;
+    private Boolean falha = Boolean.FALSE;
 
-    public Calculadora(){
+    public Calculadora() {
         setTitle("Calculadora que só soma");
-        setSize(400,150);
+        setSize(400, 150);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         JPanel painel = new JPanel(new GridBagLayout());
         GridBagConstraints constraints = new GridBagConstraints();
-        constraints.insets = new Insets(5,5,5,5);
+        constraints.insets = new Insets(5, 5, 5, 5);
 
-        var labelValor1 = new JLabel("Campo 1");
+        var labelValor1 = new JLabel(CAMPO_1);
         constraints.gridx = 0;
         constraints.gridy = 0;
         painel.add(labelValor1, constraints);
@@ -29,7 +35,7 @@ public class Calculadora extends JFrame {
         constraints.gridy = 0;
         painel.add(campoValor1, constraints);
 
-        var labelValor2 = new JLabel("Campo 2");
+        var labelValor2 = new JLabel(CAMPO_2);
         constraints.gridx = 2;
         constraints.gridy = 0;
         painel.add(labelValor2, constraints);
@@ -40,36 +46,70 @@ public class Calculadora extends JFrame {
         painel.add(campoValor2, constraints);
 
         buttonSomar = new JButton("Somar");
-        buttonSomar.addActionListener(e-> somar());
+        buttonSomar.addActionListener(e -> somar());
         constraints.gridx = 0;
         constraints.gridy = 1;
         constraints.gridwidth = 4;
-        painel.add(buttonSomar,constraints);
+        painel.add(buttonSomar, constraints);
 
         add(painel);
         setLocationRelativeTo(null);
     }
-    private void validarNumero()throws NumberFormatException{
-        if(campoValor1.getText().isEmpty() && campoValor2.getText().isEmpty()) throw new RuntimeException("Os campos devem ser preenchidos!");
-        if(campoValor1.getText().isEmpty()) throw new RuntimeException("Campo 1 não pode ser vazio");
-        if(campoValor2.getText().isEmpty()) throw new RuntimeException("Campo 2 não pode ser vazio");
+
+    private Integer converter(String valorStr, String campo) {
+        try {
+            if (valorStr.isEmpty()) throw new CalculadoraException("O valor do campo " + campo + " não pode ser vazio");
+            if (valorStr.isBlank())
+                throw new CalculadoraException("O valor do %s não pode ser espaços vazios no campo ".formatted(campo));
+
+            return Integer.parseInt((valorStr));
+
+        } catch (NumberFormatException n) {
+            showMessageDialog(this, "O valor do campo %s não é valido, informar apenas números inteiros".formatted(campo));
+            this.falha = Boolean.TRUE;
+            return 0;
+        } catch (CalculadoraException e) {
+            this.falha = e.isFalha();
+            showMessageDialog(this, e.getMessage());
+            return 0;
+        }
 
     }
-    private void somar(){
 
-        try{
-            validarNumero();
-            var valor1 = Integer.parseInt(campoValor1.getText());
-            var valor2 = Integer.parseInt(campoValor2.getText());
-            var total = valor1 + valor2;
+    private void somar() {
 
-            showMessageDialog(this, "Resultado: "+ total);
-        }catch (NumberFormatException e) {
+        try {
+            var valor1 = converter(campoValor1.getText(), CAMPO_1);
+            var valor2 = converter(campoValor2.getText(), CAMPO_2);
+            if (this.falha) {
+                this.falha = Boolean.FALSE;
+                return;
+            }
+            ;
+
+            Integer total = valor1 + valor2;
+            salvar(total.toString());
+
+            showMessageDialog(this, "Resultado: " + total);
+        } catch (NumberFormatException e) {
             showMessageDialog(this, "Apenas Números");
 
-        }catch (RuntimeException re) {
+        } catch (RuntimeException re) {
             showMessageDialog(this, re.getMessage());
         }
 
+    }
+
+    private void salvar(String valor) {
+        var diretorioProjeto = System.getProperty("user.dir");
+        var nomeArquivo = "//Calculadora.txt";
+        var arquivo = new File(diretorioProjeto, nomeArquivo);
+
+        try(BufferedWriter writer = new BufferedWriter(new FileWriter(arquivo, true))) {
+            writer.newLine();
+            writer.write(valor);
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
     }
 }
